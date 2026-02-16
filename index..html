@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jyona Scribed</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+
+<body class="bg-gray-100 font-sans">
+
+<header class="bg-blue-900 text-white p-4">
+  <h1 class="text-2xl font-bold">Jyona Scribed</h1>
+  <p>Digital Library for Applications, Forms & PDFs</p>
+</header>
+
+<main class="max-w-4xl mx-autop-6">
+<h2 class="text-xl font-bold mb-3">PDF Library</h2>
+
+<h3 class="font-bold mt-4">Office Applications</h3>
+<a href="application-1.pdf" class="text-blue-600 block">Application Format 1</a>
+<a href="application-2.pdf" class="text-blue-600 block">Application Format 2</a>
+<a href="application-3.pdf" class="text-blue-600 block">Application Format 3</a>
+
+<h3 class="font-bold mt-4">School Applications</h3>
+<a href="application-4.pdf" class="text-blue-600 block">Application Format 4</a>
+<a href="application-5.pdf" class="text-blue-600 block">Application Format 5</a>
+
+<h3 class="font-bold mt-4">NOC Formats</h3>
+<a href="application-6.pdf" class="text-blue-600 block">Application Format 6</a>
+<a href="application-7.pdf" class="text-blue-600 block">Application Format 7</a>
+<select id="templateSelect" class="border p-2 rounded mb-3 w-full">
+  <option value="">Select Template</option>
+  <option value="leave_hindi">Leave Application (Hindi)</option>
+  <option value="leave_english">Leave Application (English)</option>
+  <option value="cl_hindi">CL Application (Hindi)</option>
+  <option value="job_join">Job Joining Application</option>
+  <option value="noc_passport">NOC Passport</option>
+  <option value="noc_exam">NOC Exam</option>
+  <option value="noc_foreign">NOC Foreign Trip</option>
+</select>
+
+<button onclick="generateTemplate()" class="bg-purple-600 text-white px-4 py-2 rounded mb-3">
+Generate Template
+</button>
+
+<div class="grid md:grid-cols-2 gap-3 mb-3">
+  <input id="nameField" placeholder="Name" class="border p-2 rounded">
+  <input id="dateField" placeholder="Date" class="border p-2 rounded">
+  <input id="designationField" placeholder="Designation" class="border p-2 rounded">
+  <input id="addressField" placeholder="Address" class="border p-2 rounded">
+</div>
+
+<button onclick="autoFillApplication()" class="bg-indigo-600 text-white px-4 py-2 rounded mb-3">
+Auto Fill
+</button>
+
+<textarea id="pdfText" class="w-full border p-2 rounded mb-3" rows="8"></textarea>
+
+<div class="space-x-2">
+<button onclick="generatePDF()" class="bg-blue-600 text-white px-4 py-2 rounded">Download PDF</button>
+<button onclick="generateWord()" class="bg-green-600 text-white px-4 py-2 rounded">Download Word</button>
+<button onclick="saveToLibrary()" class="bg-gray-700 text-white px-4 py-2 rounded">Save to Library</button>
+</div>
+
+<hr class="my-6">
+
+<h2 class="text-xl font-bold mb-3">PDF Library</h2>
+<div id="pdfList"></div>
+
+</main>
+
+<script>
+let pdfs=[];
+const TRIAL_DAYS=3;
+
+function isTrialValid(){
+  const firstVisit=localStorage.getItem('firstVisit');
+  if(!firstVisit){
+    localStorage.setItem('firstVisit',Date.now());
+    return true;
+  }
+  const diff=(Date.now()-firstVisit)/(1000*60*60*24);
+  return diff<=TRIAL_DAYS;
+}
+
+function hasSubscription(){
+  return localStorage.getItem('subscribed')==='yes';
+}
+
+function activateSubscription(){
+  localStorage.setItem('subscribed','yes');
+  renderPDFs();
+}
+
+function generateTemplate(){
+  const type=document.getElementById('templateSelect').value;
+  let content="";
+
+  if(type==="leave_hindi"){
+    content=`सेवा में,
+प्रधानाचार्य महोदय
+
+विषय: अवकाश हेतु आवेदन
+
+महोदय,
+कृपया मुझे अवकाश प्रदान करने की कृपा करें।
+
+नाम: ________`;
+  }
+
+  if(type==="leave_english"){
+    content=`To,
+The Principal
+
+Subject: Leave Application
+
+Respected Sir/Madam,
+Kindly grant me leave.
+
+Name: ________`;
+  }
+
+  if(type==="cl_hindi"){
+    content=`सेवा में,
+कार्यालय प्रमुख
+
+विषय: आकस्मिक अवकाश आवेदन
+
+महोदय,
+कृपया मुझे एक दिन का CL प्रदान करें।
+
+नाम: ________`;
+  }
+
+  if(type==="job_join"){
+    content=`To,
+The Manager
+
+Subject: Job Joining
+
+I am joining my duties from ________.
+
+Name: ________`;
+  }
+
+  if(type==="noc_passport"){
+    content=`No Objection Certificate
+
+This is to certify that ________ has no objection for passport application.
+
+Authorized Signatory`;
+  }
+
+  if(type==="noc_exam"){
+    content=`No Objection Certificate
+
+This is to certify that ________ is permitted to appear in the examination.
+
+Authorized Signatory`;
+  }
+
+  if(type==="noc_foreign"){
+    content=`No Objection Certificate
+
+This is to certify that ________ is permitted for foreign travel.
+
+Authorized Signatory`;
+  }
+
+  document.getElementById("pdfText").value=content;
+}
+
+function autoFillApplication(){
+  let text=document.getElementById("pdfText").value;
+  const name=document.getElementById("nameField").value||"________";
+  const date=document.getElementById("dateField").value;
+  const des=document.getElementById("designationField").value;
+  const add=document.getElementById("addressField").value;
+
+  text=text.replace(/________/g,name);
+  text+=`\nDate: ${date}\nDesignation: ${des}\nAddress: ${add}`;
+  document.getElementById("pdfText").value=text;
+}
+
+async function generatePDF(){
+  const { jsPDF }=window.jspdf;
+  const doc=new jsPDF();
+  const text=document.getElementById("pdfText").value;
+  const lines=doc.splitTextToSize(text,180);
+  doc.text(lines,10,10);
+  doc.save("application.pdf");
+}
+
+function generateWord(){
+  const text=document.getElementById("pdfText").value;
+  const blob=new Blob([text],{type:'application/msword'});
+  const link=document.createElement("a");
+  link.href=URL.createObjectURL(blob);
+  link.download="application.doc";
+  link.click();
+}
+
+function saveToLibrary(){
+  pdfs.push("Generated Application");
+  renderPDFs();
+}
+
+function renderPDFs(){
+  const container=document.getElementById("pdfList");
+  container.innerHTML="";
+
+  if(!isTrialValid() && !hasSubscription()){
+    container.innerHTML=`
+      <div class="bg-white p-4 shadow rounded">
+      Trial expired. Subscription ₹19 required.
+      <br><br>
+      <button onclick="activateSubscription()" class="bg-blue-600 text-white px-4 py-2 rounded">
+      Activate Subscription
+      </button>
+      </div>`;
+    return;
+  }
+
+  pdfs.forEach(p=>{
+    container.innerHTML+=`<div class="bg-white p-3 shadow mb-2">${p}</div>`;
+  });
+}
+
+renderPDFs();
+</script>
+
+</body>
+</html>
